@@ -1,0 +1,18 @@
+{
+  "app_name": "อับติน",
+  "navigation": {
+    "start": "เริ่มนำทาง",
+    "stop": "หยุด",
+    "rerouting": "กำลังคำนวณเส้นทางใหม่",
+    "arrived": "คุณถึงจุดหมายแล้ว",
+    "turn_left": "เลี้ยวซ้าย",
+    "turn_right": "เลี้ยวขวา",
+    "continue_straight": "ตรงไปข้างหน้า"
+  },
+  "settings": {
+    "language": "ภาษา",
+    "voice": "คำแนะนำด้วยเสียง",
+    "map_style": "รูปแบบแผนที่",
+    "units": "หน่วย"
+  }
+}

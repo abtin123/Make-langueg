@@ -1,0 +1,18 @@
+{
+  "app_name": "أبتين",
+  "navigation": {
+    "start": "بدء الملاحة",
+    "stop": "إيقاف",
+    "rerouting": "إعادة توجيه المسار",
+    "arrived": "لقد وصلت",
+    "turn_left": "انعطف يسارًا",
+    "turn_right": "انعطف يمينًا",
+    "continue_straight": "استمر مستقيمًا"
+  },
+  "settings": {
+    "language": "اللغة",
+    "voice": "الإرشاد الصوتي",
+    "map_style": "نمط الخريطة",
+    "units": "الوحدات"
+  }
+}

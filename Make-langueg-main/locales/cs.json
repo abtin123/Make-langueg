@@ -1,0 +1,18 @@
+{
+  "app_name": "Abtin",
+  "navigation": {
+    "start": "Zahájit navigaci",
+    "stop": "Zastavit",
+    "rerouting": "Přepočítávání trasy",
+    "arrived": "Dorazili jste do cíle",
+    "turn_left": "Odbočte vlevo",
+    "turn_right": "Odbočte vpravo",
+    "continue_straight": "Pokračujte rovně"
+  },
+  "settings": {
+    "language": "Jazyk",
+    "voice": "Hlasové navádění",
+    "map_style": "Styl mapy",
+    "units": "Jednotky"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "app_name": "Abtin",
+  "navigation": {
+    "start": "Rozpocznij nawigację",
+    "stop": "Zatrzymaj",
+    "rerouting": "Przeliczanie trasy",
+    "arrived": "Dotarłeś do celu",
+    "turn_left": "Skręć w lewo",
+    "turn_right": "Skręć w prawo",
+    "continue_straight": "Jedź prosto"
+  },
+  "settings": {
+    "language": "Język",
+    "voice": "Prowadzenie głosowe",
+    "map_style": "Styl mapy",
+    "units": "Jednostki"
+  }
+}
