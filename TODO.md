@@ -1,3 +1,0 @@
-- Add locales/<code>.json for every language you want (de, fr, es, ru, tr, ... — match keys in locales/en.json)
-- Push repo, run "build-and-publish-langpacks" workflow (Actions tab), confirm langpacks-latest release has .lpk files + manifest.json
-- Consumer side (abtin-maps app): add a LangPackService that fetches this repo's release manifest.json and downloads/extracts the picked .lpk, same pattern as its voice-pack consumer for Make-voice — separate task, not in this repo
