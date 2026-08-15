@@ -1,0 +1,56 @@
+name: Extract ZIP Project
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout main branch
+      uses: actions/checkout@v4
+      with:
+        ref: main
+
+
+    - name: Install unzip
+      run: |
+        sudo apt update
+        sudo apt install unzip -y
+
+
+    - name: Extract ZIP
+      run: |
+        ZIP_FILE=$(find . -maxdepth 2 -name "*.zip" | head -1)
+
+        if [ -z "$ZIP_FILE" ]; then
+          echo "ZIP file not found"
+          exit 1
+        fi
+
+        echo "Found: $ZIP_FILE"
+
+        unzip -o "$ZIP_FILE" -d .
+
+
+    - name: Remove ZIP after extract
+      run: |
+        rm -f *.zip
+
+
+    - name: Commit extracted files to main
+      run: |
+        git config --global user.name "github-actions"
+        git config --global user.email "github-actions@github.com"
+
+        git add . ':!.github/workflows/*'
+
+        git commit -m "Extract project files from zip" || echo "No changes"
+
+        git push origin main
