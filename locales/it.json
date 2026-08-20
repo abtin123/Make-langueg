@@ -1,0 +1,18 @@
+{
+  "app_name": "Abtin",
+  "navigation": {
+    "start": "Avvia navigazione",
+    "stop": "Interrompi",
+    "rerouting": "Ricalcolo del percorso",
+    "arrived": "Sei arrivato a destinazione",
+    "turn_left": "Gira a sinistra",
+    "turn_right": "Gira a destra",
+    "continue_straight": "Prosegui dritto"
+  },
+  "settings": {
+    "language": "Lingua",
+    "voice": "Guida vocale",
+    "map_style": "Stile mappa",
+    "units": "Unità"
+  }
+}

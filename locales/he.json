@@ -1,0 +1,18 @@
+{
+  "app_name": "אבטין",
+  "navigation": {
+    "start": "התחל ניווט",
+    "stop": "עצור",
+    "rerouting": "מחשב מסלול מחדש",
+    "arrived": "הגעת ליעד",
+    "turn_left": "פנה שמאלה",
+    "turn_right": "פנה ימינה",
+    "continue_straight": "המשך ישר"
+  },
+  "settings": {
+    "language": "שפה",
+    "voice": "הנחיה קולית",
+    "map_style": "סגנון מפה",
+    "units": "יחידות"
+  }
+}

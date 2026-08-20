@@ -1,0 +1,18 @@
+{
+  "app_name": "Abtin",
+  "navigation": {
+    "start": "Începe navigarea",
+    "stop": "Oprește",
+    "rerouting": "Se recalculează ruta",
+    "arrived": "Ați ajuns la destinație",
+    "turn_left": "Virați la stânga",
+    "turn_right": "Virați la dreapta",
+    "continue_straight": "Continuați drept înainte"
+  },
+  "settings": {
+    "language": "Limbă",
+    "voice": "Ghidare vocală",
+    "map_style": "Stil hartă",
+    "units": "Unități"
+  }
+}

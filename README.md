@@ -1,63 +1,56 @@
-# lang-sync — GitHub-hosted language packs for a nav app
+# آبتین‌مپ — سازندهٔ بسته‌های زبان
 
-Human-editable JSON per language in `locales/` → gzip-compressed into one
-small `.lpk` file per language → published as GitHub Release assets → app
-fetches `manifest.json` first, shows a language picker, downloads only the
-`.lpk` file the user picks. Same shape as this repo's sibling `Make-voice`
-(manifest-first, download-only, no server).
+این مخزن فقط متن‌های رابط کاربری را ترجمه و منتشر می‌کند. داده‌های نقشه، نام
+کشورها، مکان‌ها، خیابان‌ها، POIها و فایل‌های ABM عمداً در بسته‌های زبان وجود
+ندارند.
 
-## Build locally
+هر بستهٔ زبان شامل تمام **۳۱۷** کلید رابط غیرنقشه‌ای است و به‌صورت یک فایل
+فشردهٔ `.lpk` منتشر می‌شود. اپ ابتدا `manifest.json` را دریافت می‌کند، سپس فقط
+زبان انتخاب‌شده را دانلود، هش SHA-256 را بررسی و نصب می‌کند.
 
-```
-python scripts/build.py --locales-dir locales --out out
-```
+## Secretهای GitHub
 
-Produces:
+در `Settings → Secrets and variables → Actions` این دو secret را ثبت کنید:
 
-```
-out/en.lpk
-out/fa.lpk
-out/ar.lpk
-out/manifest.json
+```text
+TRANSLATION_API_KEY
+TRANSLATION_API_BASE
 ```
 
-Add a language: drop a new `locales/<code>.json` with the same keys as
-`locales/en.json`, commit, done — the build warns (not fails) on missing
-keys so partial translations still ship.
+`TRANSLATION_API_BASE` باید یک endpoint سازگار با OpenAI و شامل `/v1` باشد؛
+مثلاً `https://api.openai.com/v1`. در صورت خالی‌بودن، workflow همان آدرس OpenAI
+را استفاده می‌کند. مدل اختیاری در variable با نام `TRANSLATION_MODEL` قرار
+می‌گیرد و مقدار پیش‌فرض `gpt-5-mini` است.
 
-## Publish to GitHub (the "hosted, download-only" part)
+## انتشار
 
-Push the repo, then run the `build-and-publish-langpacks` workflow (Actions
-tab → Run workflow, or just push a change under `locales/`). It builds all
-`.lpk` files + `manifest.json` and publishes them as assets on a GitHub
-Release (`langpacks-latest` by default). No server needed — the app
-downloads straight from the release's asset URLs, same as `Make-voice`.
+از Actions، workflow `build-and-publish-language-packs` را اجرا کنید. گزینهٔ
+`translate` به‌طور پیش‌فرض فعال است و همهٔ localeها را از روی
+`examples/base_strings.json` کامل می‌کند. سپس workflow این موارد را در release
+با tag `langpacks-latest` قرار می‌دهد:
 
-## `.lpk` format
-
-Plain gzip of the locale's JSON. Read it with:
-
+```text
+manifest.json
+lang_ar.lpk
+lang_de.lpk
+...
 ```
-python scripts/extract_lpk.py out/fa.lpk
+
+هر رکورد مانیفست دارای لینک مستقیم asset، نسخه، اندازه، تعداد کلیدها، جهت متن
+و SHA-256 است. اپ فقط مانیفستِ schema version 2 با `app_strings: non-map-ui` را
+می‌پذیرد.
+
+## به‌روزرسانی منبع متن
+
+پس از تغییر `app_strings_snapshot.dart`، دستور زیر را اجرا کنید تا منبع زبان
+با رابط Flutter همگام شود:
+
+```bash
+python scripts/extract_app_strings.py \
+  --source app_strings_snapshot.dart \
+  --out examples/base_strings.json
 ```
 
-## App flow
-
-1. Fetch **only** `manifest.json` from the release — a few KB, instant.
-2. Render a language picker from `manifest["languages"]` keys.
-3. When the user picks e.g. `fa`, download `manifest["languages"]["fa"]["file"]`,
-   gunzip it, and load it as the app's active string table.
-4. Compare `manifest["languages"][code]["version"]` against the locally
-   installed version to skip re-downloading unchanged packs.
-
-`manifest.json`:
-
-```
-{
-  "version": 1,
-  "languages": {
-    "fa": {"file": "fa.lpk", "version": "a1b2c3d4e5f6", "size_bytes": 812, "sha256": "..."},
-    "en": {"file": "en.lpk", "version": "9f8e7d6c5b4a", "size_bytes": 790, "sha256": "..."}
-  }
-}
-```
+ترجمهٔ دستی یا بازتولید خودکار هر دو باید همهٔ کلیدها و placeholderهایی مانند
+`{count}` و `{error}` را بدون تغییر نگه دارند؛ سازنده در غیر این صورت انتشار را
+متوقف می‌کند.
