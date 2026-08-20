@@ -1,29 +1,51 @@
-name: build-and-publish-langpacks
+name: build-and-publish-language-packs
 
 on:
-  push:
-    paths:
-      - "locales/**"
-      - "scripts/build.py"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      translate:
+        description: "ترجمهٔ کامل localeها با API سازگار با OpenAI"
+        type: boolean
+        required: false
+        default: true
+      release_tag:
+        description: "تگ release"
+        required: false
+        default: "langpacks-latest"
+
+permissions:
+  contents: write
 
 jobs:
-  build:
+  build-and-publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-
-      - name: Build language packs
-        run: python scripts/build.py --locales-dir locales --out out
-
-      - name: Publish as GitHub Release assets
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: langpacks-latest
-          name: Language packs (latest)
-          body: Auto-built from locales/ — app reads manifest.json first.
-          files: out/*
+          python-version: "3.11"
+      - name: Extract the complete non-map UI catalog
+        run: python scripts/extract_app_strings.py --source app_strings_snapshot.dart --out examples/base_strings.json
+      - name: Translate all UI locales when requested
+        if: ${{ inputs.translate == true }}
+        env:
+          TRANSLATION_API_BASE: ${{ secrets.TRANSLATION_API_BASE || 'https://api.openai.com/v1' }}
+          TRANSLATION_API_KEY: ${{ secrets.TRANSLATION_API_KEY }}
+          TRANSLATION_MODEL: ${{ vars.TRANSLATION_MODEL }}
+        run: python scripts/generate_full_locales.py --overwrite
+      - name: Build complete compressed packs and direct-URL manifest
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag || 'langpacks-latest' }}
+        run: |
+          python scripts/build.py \
+            --source examples/base_strings.json \
+            --locales-dir locales \
+            --out out \
+            --download-base "https://github.com/${{ github.repository }}/releases/download/$RELEASE_TAG"
+      - name: Publish manifest and packs with replacement
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag || 'langpacks-latest' }}
+        run: |
+          gh release view "$RELEASE_TAG" >/dev/null 2>&1 || gh release create "$RELEASE_TAG" --title "Abtin Maps language packs"
+          gh release upload "$RELEASE_TAG" out/* --clobber
