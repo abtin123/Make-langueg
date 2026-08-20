@@ -1,0 +1,18 @@
+{
+  "app_name": "Abtin",
+  "navigation": {
+    "start": "Start navigation",
+    "stop": "Stop",
+    "rerouting": "Genberegner rute",
+    "arrived": "Du er ankommet",
+    "turn_left": "Drej til venstre",
+    "turn_right": "Drej til højre",
+    "continue_straight": "Fortsæt ligeud"
+  },
+  "settings": {
+    "language": "Sprog",
+    "voice": "Stemmevejledning",
+    "map_style": "Kortstil",
+    "units": "Enheder"
+  }
+}

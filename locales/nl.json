@@ -1,0 +1,18 @@
+{
+  "app_name": "Abtin",
+  "navigation": {
+    "start": "Navigatie starten",
+    "stop": "Stoppen",
+    "rerouting": "Route wordt herberekend",
+    "arrived": "U bent aangekomen",
+    "turn_left": "Linksaf slaan",
+    "turn_right": "Rechtsaf slaan",
+    "continue_straight": "Rechtdoor rijden"
+  },
+  "settings": {
+    "language": "Taal",
+    "voice": "Gesproken instructies",
+    "map_style": "Kaartstijl",
+    "units": "Eenheden"
+  }
+}

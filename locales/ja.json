@@ -1,0 +1,18 @@
+{
+  "app_name": "アブティン",
+  "navigation": {
+    "start": "ナビゲーション開始",
+    "stop": "停止",
+    "rerouting": "ルートを再計算中",
+    "arrived": "目的地に到着しました",
+    "turn_left": "左折してください",
+    "turn_right": "右折してください",
+    "continue_straight": "直進してください"
+  },
+  "settings": {
+    "language": "言語",
+    "voice": "音声案内",
+    "map_style": "地図のスタイル",
+    "units": "単位"
+  }
+}

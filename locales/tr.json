@@ -1,0 +1,18 @@
+{
+  "app_name": "Abtin",
+  "navigation": {
+    "start": "Navigasyonu başlat",
+    "stop": "Durdur",
+    "rerouting": "Rota yeniden hesaplanıyor",
+    "arrived": "Varış noktasına ulaştınız",
+    "turn_left": "Sola dönün",
+    "turn_right": "Sağa dönün",
+    "continue_straight": "Düz devam edin"
+  },
+  "settings": {
+    "language": "Dil",
+    "voice": "Sesli yönlendirme",
+    "map_style": "Harita stili",
+    "units": "Birimler"
+  }
+}
