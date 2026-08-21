@@ -1,0 +1,18 @@
+{
+  "app_name": "阿布汀",
+  "navigation": {
+    "start": "开始导航",
+    "stop": "停止",
+    "rerouting": "正在重新规划路线",
+    "arrived": "您已到达目的地",
+    "turn_left": "左转",
+    "turn_right": "右转",
+    "continue_straight": "继续直行"
+  },
+  "settings": {
+    "language": "语言",
+    "voice": "语音提示",
+    "map_style": "地图样式",
+    "units": "单位"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "app_name": "Abtin",
+  "navigation": {
+    "start": "Mulai navigasi",
+    "stop": "Berhenti",
+    "rerouting": "Menghitung ulang rute",
+    "arrived": "Anda telah tiba",
+    "turn_left": "Belok kiri",
+    "turn_right": "Belok kanan",
+    "continue_straight": "Lanjutkan lurus"
+  },
+  "settings": {
+    "language": "Bahasa",
+    "voice": "Panduan suara",
+    "map_style": "Gaya peta",
+    "units": "Satuan"
+  }
+}

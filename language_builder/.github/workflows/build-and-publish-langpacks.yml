@@ -1,0 +1,40 @@
+name: build-and-publish-language-packs
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "تگ release"
+        required: false
+        default: "langpacks-latest"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Extract the complete non-map UI catalog
+        run: python scripts/extract_app_strings.py --source app_strings_snapshot.dart --out examples/base_strings.json
+      - name: Build every locale and complete newly added keys with local fallback text
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag || 'langpacks-latest' }}
+        run: |
+          python scripts/build.py \
+            --source examples/base_strings.json \
+            --locales-dir locales \
+            --out out \
+            --fill-missing \
+            --download-base "https://github.com/${{ github.repository }}/releases/download/$RELEASE_TAG"
+      - name: Publish manifest and packs with replacement
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag || 'langpacks-latest' }}
+        run: |
+          gh release view "$RELEASE_TAG" >/dev/null 2>&1 || gh release create "$RELEASE_TAG" --title "Abtin Maps language packs"
+          gh release upload "$RELEASE_TAG" out/* --clobber
