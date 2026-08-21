@@ -15,18 +15,22 @@
 
 ## انتشار
 
-از Actions، workflow `build-and-publish-language-packs` را اجرا کنید. سازنده
-فقط localeهای کامل را در release با tag `langpacks-latest` منتشر می‌کند:
+از Actions، workflow `build-and-publish-language-packs` را اجرا کنید. همهٔ
+localeهای کاتالوگ در release با tag `langpacks-latest` منتشر می‌شوند:
 
 ```text
 manifest.json
-lang_ar.lpk
-lang_de.lpk
+lang_ar.abl
+lang_de.abl
 ...
 ```
 
 هر رکورد مانیفست لینک مستقیم فایل، نسخه، اندازه، تعداد کلیدها، جهت متن و
-SHA-256 دارد. اپ فقط مانیفست schema version 2 با `app_strings: non-map-ui` را
+SHA-256 دارد. در صورتی که locale قدیمی کلیدی از نسخهٔ تازهٔ رابط نداشته باشد،
+سازنده آن کلید را با متن مبنای فارسی کامل می‌کند و مقدارهای
+`fallback_language` و `fallback_key_count` را در مانیفست ثبت می‌کند تا آن
+locale بدون حذف‌شدن منتشر شود و کلیدهای نیازمند ترجمه در انتشار بعدی مشخص
+باشند. اپ فقط مانیفست schema version 2 با `app_strings: non-map-ui` را
 می‌پذیرد و پیش از نصب، فایل فشرده و هش آن را اعتبارسنجی می‌کند.
 
 ## به‌روزرسانی کلیدها
@@ -40,6 +44,7 @@ python scripts/extract_app_strings.py \
   --out examples/base_strings.json
 ```
 
-سازنده هر locale ناقص را نادیده می‌گیرد و تا زمانی که همهٔ کلیدها و
-placeholderهایی مانند `{count}` و `{error}` وجود نداشته باشند، آن را منتشر
-نمی‌کند.
+در workflow انتشار، `--fill-missing` فعال است تا کلیدهای جدید باعث حذف کل یک
+زبان نشوند. برای اجرای سخت‌گیرانهٔ محلی می‌توانید آن گزینه را حذف کنید؛ در آن
+حالت هر locale باید همهٔ کلیدها و placeholderهایی مانند `{count}` و `{error}`
+را داشته باشد.
