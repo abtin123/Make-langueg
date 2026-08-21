@@ -1,0 +1,3 @@
+- Add locales/<code>.json for every language you want (de, fr, es, ru, tr, ... — match keys in locales/en.json)
+- Push repo, run "build-and-publish-langpacks" workflow (Actions tab), confirm langpacks-latest release has .abl files + manifest.json
+- Consumer side (abtin-maps app): LangPackService fetches this repo's release manifest.json and downloads/extracts the picked .abl; it is implemented in the Flutter client
