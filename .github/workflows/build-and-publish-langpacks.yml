@@ -21,7 +21,7 @@ jobs:
           python-version: "3.11"
       - name: Extract the complete non-map UI catalog
         run: python scripts/extract_app_strings.py --source app_strings_snapshot.dart --out examples/base_strings.json
-      - name: Build manually translated complete packs and direct-URL manifest
+      - name: Build every locale and complete newly added keys with local fallback text
         env:
           RELEASE_TAG: ${{ inputs.release_tag || 'langpacks-latest' }}
         run: |
@@ -29,7 +29,7 @@ jobs:
             --source examples/base_strings.json \
             --locales-dir locales \
             --out out \
-            --skip-incomplete \
+            --fill-missing \
             --download-base "https://github.com/${{ github.repository }}/releases/download/$RELEASE_TAG"
       - name: Publish manifest and packs with replacement
         env:
