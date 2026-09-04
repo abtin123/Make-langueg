@@ -1,0 +1,231 @@
+{
+  "schema_version": 3,
+  "base_language": "fa",
+  "string_count": 547,
+  "languages": [
+    {
+      "language_code": "ar",
+      "language": "العربية",
+      "english_name": "Arabic",
+      "direction": "rtl",
+      "string_count": 547,
+      "version": "f562067a13e913a4"
+    },
+    {
+      "language_code": "cs",
+      "language": "Čeština",
+      "english_name": "Czech",
+      "direction": "ltr",
+      "string_count": 547,
+      "version": "9b63578fd54ac8f7"
+    },
+    {
+      "language_code": "da",
+      "language": "Dansk",
+      "english_name": "Danish",
+      "direction": "ltr",
+      "string_count": 547,
+      "version": "fcf8c7f849a3cfdf"
+    },
+    {
+      "language_code": "de",
+      "language": "Deutsch",
+      "english_name": "German",
+      "direction": "ltr",
+      "string_count": 547,
+      "version": "833014577b3db409"
+    },
+    {
+      "language_code": "el",
+      "language": "Ελληνικά",
+      "english_name": "Greek",
+      "direction": "ltr",
+      "string_count": 547,
+      "version": "f0d4cbed1cbe093f"
+    },
+    {
+      "language_code": "es",
+      "language": "Español",
+      "english_name": "Spanish",
+      "direction": "ltr",
+      "string_count": 547,
+      "version": "3315525679205201"
+    },
+    {
+      "language_code": "fi",
+      "language": "Suomi",
+      "english_name": "Finnish",
+      "direction": "ltr",
+      "string_count": 547,
+      "version": "9220c443d505c490"
+    },
+    {
+      "language_code": "fr",
+      "language": "Français",
+      "english_name": "French",
+      "direction": "ltr",
+      "string_count": 547,
+      "version": "231de163d529f26b"
+    },
+    {
+      "language_code": "he",
+      "language": "עברית",
+      "english_name": "Hebrew",
+      "direction": "rtl",
+      "string_count": 547,
+      "version": "8a38ba933b30b8b9"
+    },
+    {
+      "language_code": "hi",
+      "language": "हिन्दी",
+      "english_name": "Hindi",
+      "direction": "ltr",
+      "string_count": 547,
+      "version": "1e88edd0e95431da"
+    },
+    {
+      "language_code": "hu",
+      "language": "Magyar",
+      "english_name": "Hungarian",
+      "direction": "ltr",
+      "string_count": 547,
+      "version": "9e01fe65af36a521"
+    },
+    {
+      "language_code": "id",
+      "language": "Bahasa Indonesia",
+      "english_name": "Indonesian",
+      "direction": "ltr",
+      "string_count": 547,
+      "version": "f311b9c0e09941e6"
+    },
+    {
+      "language_code": "it",
+      "language": "Italiano",
+      "english_name": "Italian",
+      "direction": "ltr",
+      "string_count": 547,
+      "version": "d1a4aa2b299b41e2"
+    },
+    {
+      "language_code": "ja",
+      "language": "日本語",
+      "english_name": "Japanese",
+      "direction": "ltr",
+      "string_count": 547,
+      "version": "58b70d80b1c1997e"
+    },
+    {
+      "language_code": "ko",
+      "language": "한국어",
+      "english_name": "Korean",
+      "direction": "ltr",
+      "string_count": 547,
+      "version": "63318fd75353cfc2"
+    },
+    {
+      "language_code": "nl",
+      "language": "Nederlands",
+      "english_name": "Dutch",
+      "direction": "ltr",
+      "string_count": 547,
+      "version": "46590b3e659147d7"
+    },
+    {
+      "language_code": "no",
+      "language": "Norsk",
+      "english_name": "Norwegian",
+      "direction": "ltr",
+      "string_count": 547,
+      "version": "8809888716816d38"
+    },
+    {
+      "language_code": "pl",
+      "language": "Polski",
+      "english_name": "Polish",
+      "direction": "ltr",
+      "string_count": 547,
+      "version": "12da7ee00d225d4f"
+    },
+    {
+      "language_code": "pt",
+      "language": "Português",
+      "english_name": "Portuguese",
+      "direction": "ltr",
+      "string_count": 547,
+      "version": "8b54333beb0c7b96"
+    },
+    {
+      "language_code": "ro",
+      "language": "Română",
+      "english_name": "Romanian",
+      "direction": "ltr",
+      "string_count": 547,
+      "version": "ede56ce1b6a5e45f"
+    },
+    {
+      "language_code": "ru",
+      "language": "Русский",
+      "english_name": "Russian",
+      "direction": "ltr",
+      "string_count": 547,
+      "version": "d71e61aa35107719"
+    },
+    {
+      "language_code": "sv",
+      "language": "Svenska",
+      "english_name": "Swedish",
+      "direction": "ltr",
+      "string_count": 547,
+      "version": "286cb0c2609ca55c"
+    },
+    {
+      "language_code": "th",
+      "language": "ไทย",
+      "english_name": "Thai",
+      "direction": "ltr",
+      "string_count": 547,
+      "version": "289f618dbd514e94"
+    },
+    {
+      "language_code": "tr",
+      "language": "Türkçe",
+      "english_name": "Turkish",
+      "direction": "ltr",
+      "string_count": 547,
+      "version": "f3d26fa473973301"
+    },
+    {
+      "language_code": "uk",
+      "language": "Українська",
+      "english_name": "Ukrainian",
+      "direction": "ltr",
+      "string_count": 547,
+      "version": "79c73528d55d8789"
+    },
+    {
+      "language_code": "ur",
+      "language": "اردو",
+      "english_name": "Urdu",
+      "direction": "rtl",
+      "string_count": 547,
+      "version": "f2ef97520e002464"
+    },
+    {
+      "language_code": "vi",
+      "language": "Tiếng Việt",
+      "english_name": "Vietnamese",
+      "direction": "ltr",
+      "string_count": 547,
+      "version": "800af30d3772bde2"
+    },
+    {
+      "language_code": "zh",
+      "language": "简体中文",
+      "english_name": "Simplified Chinese",
+      "direction": "ltr",
+      "string_count": 547,
+      "version": "cbda6185267aef61"
+    }
+  ]
+}
