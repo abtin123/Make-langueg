@@ -1,0 +1,65 @@
+# آبتین‌مپ — سازندهٔ بسته‌های زبان
+
+این مخزن فقط متن‌های رابط کاربری را ترجمه، اعتبارسنجی، بسته‌بندی و منتشر می‌کند. داده‌های نقشه، نام مکان‌ها، خیابان‌ها، POIها و فایل‌های ABM جزو بستهٔ زبان نیستند.
+
+**فارسی و انگلیسی** همراه اپ هستند. همهٔ زبان‌های دیگر، از جمله **چینی**، فقط به‌صورت بستهٔ قابل دانلود و پس از کنترل کامل‌بودن نصب می‌شوند.
+
+## ساختار واحد
+
+این پروژه فقط یک مسیر انتشار دارد و هیچ پوشهٔ تکراریِ `language_builder/` در آن نیست.
+
+| مسیر | نقش |
+|---|---|
+| `scripts/build.py` | تنها سازندهٔ انتشار؛ فایل‌های `.abl` و `manifest.json` را فقط از localeهای کامل می‌سازد. |
+| `scripts/complete_locales_internal.py` | ابزار نویسندگی/ترجمهٔ تفاضلی؛ کلیدهای جدید یا تغییرکرده را تولید می‌کند و هر batch را checkpoint می‌کند. سازندهٔ انتشار دوم نیست. |
+| `scripts/extract_app_strings.py` | قرارداد کلیدهای فارسی را از snapshot اپ استخراج می‌کند. |
+| `examples/base_strings.json` | مرجع تختِ کلید → متن فارسی. |
+| `locales/<code>.json` | ترجمهٔ تخت و کامل هر زبان. |
+| `.locale-state/<code>.source.json` | نسخهٔ مرجع فارسی که آخرین ترجمهٔ آن زبان بر اساس آن ساخته شده است. |
+| `.locale-checkpoints/` | پیشرفت موقت یک اجرای ناتمام؛ فایل‌های این پوشه منتشر نمی‌شوند. |
+
+> هیچ مسیر انتشار یا workflow اجازهٔ ساخت متن fallback فارسی/انگلیسی را ندارد. یک locale ناقص، عمداً build را متوقف می‌کند.
+
+## به‌روزرسانی تفاضلی پس از تغییر اپ
+
+پس از هر تغییر در متن‌های اپ، ابتدا قرارداد تازه را استخراج کنید، سپس ابزار ترجمه را اجرا کنید:
+
+```bash
+python scripts/extract_app_strings.py \
+  --source app_strings_snapshot.dart \
+  --out examples/base_strings.json
+
+python scripts/complete_locales_internal.py \
+  --source examples/base_strings.json \
+  --locales-dir locales \
+  --checkpoints-dir .locale-checkpoints \
+  --state-dir .locale-state \
+  --report LOCALE_DELTA_REPORT.json
+```
+
+اسکریپت برای هر زبان سه وضعیت را مقایسه می‌کند: جدول فارسی جدید، snapshot فارسیِ اجرای قبلی، و locale فعلی. در نتیجه فقط این موارد دوباره به مدل ترجمه فرستاده می‌شوند:
+
+| وضعیت کلید | رفتار |
+|---|---|
+| کلید بدون تغییر و ترجمهٔ معتبر | بدون ترجمهٔ دوباره حفظ می‌شود. |
+| کلید جدید | فقط همان کلید ترجمه می‌شود. |
+| متن فارسیِ کلیدی تغییر کرده است | فقط همان کلید دوباره ترجمه می‌شود. |
+| ترجمهٔ قبلی خالی، ناقص یا با placeholder نادرست است | فقط همان کلید اصلاح می‌شود. |
+
+هر batch موفق فوراً در `.locale-checkpoints/` ذخیره می‌شود؛ بنابراین اگر اجرا قطع شود، اجرای بعدی فقط بخش ناتمام را ادامه می‌دهد. برای بازترجمهٔ عمدی همهٔ یک زبان از `--force-full --codes <code>` استفاده کنید.
+
+## کنترل و انتشار
+
+پس از کامل‌شدن localeها، build سخت‌گیرانه را اجرا کنید:
+
+```bash
+python scripts/build.py \
+  --source examples/base_strings.json \
+  --locales-dir locales \
+  --out out \
+  --download-base "https://github.com/OWNER/REPOSITORY/releases/download/langpacks-latest"
+```
+
+این فرمان برای هر زبان دقیقاً یک فایل `lang_<code>.abl` و یک `manifest.json` می‌سازد. هر رکورد شامل کد زبان، جهت متن، تعداد کلیدها، نسخه، SHA-256 و لینک دانلود مستقیم است. اگر حتی یک key کم، اضافی یا نادرست باشد، انتشار انجام نمی‌شود.
+
+در GitHub، workflow `build-and-publish-language-packs` همین build سخت‌گیرانه را اجرا و release با tag `langpacks-latest` را جایگزین می‌کند. ترجمه باید پیش از اجرای workflow در فایل‌های `locales/` کامل شده باشد.
