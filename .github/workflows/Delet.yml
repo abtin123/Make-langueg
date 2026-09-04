@@ -1,0 +1,49 @@
+name: Delete Everything Except Workflows
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Delete everything except workflows
+        run: |
+          set -e
+
+          shopt -s dotglob nullglob
+
+          for item in *; do
+            if [[ "$item" != ".git" && "$item" != ".github" ]]; then
+              rm -rf -- "$item"
+            fi
+          done
+
+          if [ -d ".github" ]; then
+            find .github -mindepth 1 -maxdepth 1 ! -name "workflows" -exec rm -rf {} +
+          fi
+
+          find .github/workflows -type f -print
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "Nothing to delete."
+          else
+            git commit -m "Delete all repository files except workflows"
+            git push
+          fi
