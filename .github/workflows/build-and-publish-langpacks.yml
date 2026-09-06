@@ -1,6 +1,15 @@
 name: build-and-publish-language-packs
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'app_strings_snapshot.dart'
+      - 'scripts/**'
+      - 'locales/**'
+      - '.locale-state/**'
+      - 'examples/base_strings.json'
+      - '.github/workflows/build-and-publish-langpacks.yml'
   workflow_dispatch:
     inputs:
       release_tag:
@@ -16,6 +25,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -26,8 +38,8 @@ jobs:
       - name: Extract the complete non-map UI catalog
         run: python scripts/extract_app_strings.py --source app_strings_snapshot.dart --out examples/base_strings.json
 
-      # این مرحله فقط کلیدهای جدید، تغییرکرده یا نامعتبر را ترجمه می‌کند.
-      # اگر کلیدها تغییری نکرده باشند، هیچ درخواست مدل و هیچ ترجمهٔ مجددی ندارد.
+      # Translate only new/changed/invalid keys. A locale is never allowed to
+      # publish until it contains exactly the same key set as the app catalog.
       - name: Complete changed language strings before publishing
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -49,6 +61,14 @@ jobs:
             --locales-dir locales \
             --out out \
             --download-base "https://github.com/${{ github.repository }}/releases/download/$RELEASE_TAG"
+
+      - name: Commit generated locale updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add examples/base_strings.json locales .locale-state LOCALE_DELTA_REPORT.json
+          git diff --cached --quiet || git commit -m "chore: sync complete app localization catalog"
+          git push origin main
 
       - name: Publish manifest and packs with replacement
         env:
