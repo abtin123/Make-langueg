@@ -1,0 +1,121 @@
+name: Build and Publish Language Packs
+
+# Build all 30 locale JSON files into .abl (gzipped) packs and publish a
+# new GitHub Release tagged `langpacks-latest`. The AbtinMaps Flutter app
+# downloads the manifest at startup and fetches packs for any language the
+# user picks that is not bundled in the APK (fa/en are bundled).
+
+on:
+  push:
+    paths:
+      - 'assets/local/**'
+      - 'lib/core/localization/app_localizations.dart'
+      - '.github/workflows/langpacks-build.yml'
+      - 'tool/l10n/parity.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Flutter (for analyze parity)
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.1'
+          channel: stable
+
+      - name: Install Python deps
+        run: pip install --quiet requests
+
+      - name: Run l10n parity script
+        run: python tool/l10n/parity.py
+
+      - name: Verify parity (no missing keys, no placeholder mismatches)
+        run: |
+          python - <<'PY'
+          import json, re, sys
+          from pathlib import Path
+          LOCAL = Path("assets/local")
+          locales = {p.stem: json.loads(p.read_text(encoding="utf-8"))
+                     for p in LOCAL.glob("*.json") if p.name != "manifest.json"}
+          union = set()
+          for d in locales.values(): union |= set(d.keys())
+          ph = re.compile(r"\{[a-z_][a-z0-9_]*\}")
+          issues = []
+          for code, d in locales.items():
+              miss = union - set(d.keys()); extra = set(d.keys()) - union
+              if miss or extra: issues.append((code, "missing/extra", len(miss), len(extra)))
+              for k in union:
+                  fph = set(ph.findall(locales["fa"].get(k,"")))
+                  if fph and set(ph.findall(d.get(k,""))) != fph:
+                      issues.append((code, k, "placeholder"))
+          if issues:
+              for it in issues: print("ISSUE", it)
+              sys.exit(1)
+          print(f"PARITY OK: {len(locales)} locales x {len(union)} keys")
+          PY
+
+      - name: Build .abl packs
+        env:
+          DOWNLOAD_BASE: ${{ github.server_url }}/${{ github.repository }}/releases/download/langpacks-latest
+        run: |
+          python - <<'PY'
+          import gzip, hashlib, json
+          from pathlib import Path
+          from datetime import datetime, timezone
+          LOCAL = Path("assets/local")
+          OUT = Path("out")
+          OUT.mkdir(exist_ok=True)
+          fa = json.loads((LOCAL/"fa.json").read_text(encoding="utf-8"))
+          languages = []
+          base = "https://github.com/${{ github.repository }}/releases/download/langpacks-latest"
+          import os
+          base = os.environ["DOWNLOAD_BASE"]
+          for code in ["ar","cs","da","de","el","en","es","fa","fi","fr","he","hi","hu",
+                       "id","it","ja","ko","nl","no","pl","pt","ro","ru","sv","th","tr",
+                       "uk","ur","vi","zh"]:
+              data = json.loads((LOCAL/f"{code}.json").read_text(encoding="utf-8"))
+              raw = json.dumps(data, ensure_ascii=False, sort_keys=True,
+                               separators=(",",":")).encode("utf-8")
+              packed = gzip.compress(raw, compresslevel=9, mtime=0)
+              (OUT/f"lang_{code}.abl").write_bytes(packed)
+              languages.append({
+                  "language_code": code, "string_count": len(data),
+                  "size": len(packed), "sha256": hashlib.sha256(packed).hexdigest(),
+                  "version": hashlib.sha256(raw).hexdigest()[:16],
+                  "download_url": f"{base}/lang_{code}.abl",
+              })
+          manifest = {
+              "schema_version": 2,
+              "generated_at": datetime.now(timezone.utc).isoformat(),
+              "app_strings": "non-map-ui",
+              "base_language": "fa",
+              "string_count": len(fa),
+              "languages": sorted(languages, key=lambda x: x["language_code"]),
+          }
+          (OUT/"manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2)+"\n")
+          print(f"Built {len(languages)} packs -> {OUT}")
+          PY
+
+      - name: Publish to release (langpacks-latest)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag: langpacks-latest
+          name: Language packs (latest)
+          generate_release_notes: true
+          overwrite_files: true
+          files: |
+            out/lang_*.abl
+            out/manifest.json
