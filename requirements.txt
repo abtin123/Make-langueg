@@ -1,2 +1,0 @@
-# Dependency used only when the delta detector finds new, changed or invalid strings.
-openai>=1.60.0,<2.0.0
