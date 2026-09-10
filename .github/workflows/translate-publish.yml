@@ -1,60 +1,12 @@
-name: Translate & Publish Language Packs
-
-# با این اکشن همهٔ زبان‌ها را یک‌جا ترجمه می‌کند و بسته‌ها را روی release منتشر
-# می‌کند تا هر کسی از داخل خودِ اپ یا صفحهٔ Release بتواند زبانش را دانلود کند.
-# مسیر: GitHub → Actions → «Translate & Publish Language Packs» → Run workflow
+name: Legacy language workflow
 
 on:
   workflow_dispatch:
-    inputs:
-      force:
-        description: 'Re-translate all keys (ignore existing translations)'
-        type: boolean
-        default: false
-      languages:
-        description: 'Comma-separated language codes (empty = all 30)'
-        type: string
-        default: ''
 
-permissions:
-  contents: write
-
+# The canonical workflow is build-and-publish-langpacks.yml.
+# This file intentionally does nothing to prevent duplicate releases.
 jobs:
-  translate:
+  disabled:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: pip install --quiet requests
-
-      - name: Translate missing UI strings
-        run: |
-          ARGS="--no-publish"
-          if [ "${{ inputs.force }}" = "true" ]; then ARGS="$ARGS --force"; fi
-          if [ -n "${{ inputs.languages }}" ]; then ARGS="$ARGS --langs ${{ inputs.languages }}"; fi
-          python tool/l10n/translate_and_publish.py $ARGS
-
-      - name: Publish release (langpacks-latest)
-        uses: softprops/action-gh-release@v2
-        with:
-          tag: langpacks-latest
-          name: Language packs (latest)
-          generate_release_notes: true
-          overwrite_files: true
-          files: |
-            out/lang_*.abl
-            out/manifest.json
-
-      - name: Commit updated locales back to the repo
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/local
-          git diff --cached --quiet || git commit -m "chore(l10n): auto-translate new UI strings"
-          git push
+      - run: echo "Use build-and-publish-langpacks.yml"
