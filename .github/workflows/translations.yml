@@ -2,6 +2,13 @@ name: Build Translation Packs
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - "fa.json"
+      - "generate_languages.py"
+      - "requirements.txt"
+      - ".github/workflows/translations.yml"
+
 permissions:
   contents: read
 
@@ -17,7 +24,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: "pip"
+          cache: pip
 
       - name: Install dependencies
         run: |
@@ -32,11 +39,11 @@ jobs:
           restore-keys: |
             translations-cache-${{ runner.os }}-
 
-      - name: Build language packs
+      - name: Build all 28 language packs
         run: |
           python generate_languages.py
 
-      - name: Create release archive
+      - name: Create archive
         run: |
           cd dist
           zip -r ../AbtinMaps-language-packs.zip .
