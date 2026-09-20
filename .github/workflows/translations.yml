@@ -6,12 +6,11 @@ on:
     paths:
       - "fa.json"
       - "generate_languages.py"
-      - "languages.json"
       - "requirements.txt"
       - ".github/workflows/translations.yml"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   translations:
@@ -25,49 +24,35 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: "pip"
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Authenticate Google Cloud
-        uses: google-github-actions/auth@v2
+      - name: Restore translation cache
+        uses: actions/cache@v4
         with:
-          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_JSON }}
+          path: .translation_cache.json
+          key: translations-cache-${{ runner.os }}-${{ hashFiles('fa.json') }}
+          restore-keys: |
+            translations-cache-${{ runner.os }}-
 
-      - name: Setup Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: ${{ secrets.GOOGLE_CLOUD_PROJECT }}
-
-      - name: Build translation packs
-        env:
-          GOOGLE_CLOUD_PROJECT: ${{ secrets.GOOGLE_CLOUD_PROJECT }}
+      - name: Build language packs
         run: |
           python generate_languages.py
 
-      - name: Validate generated files
-        run: |
-          test -d dist
-          test -f dist/manifest.json
-          find dist -type f -name "*.abl" | sort
-
-      - name: Create release ZIP
+      - name: Create release archive
         run: |
           cd dist
-          zip -r ../AbtinMaps-translation-packs.zip .
+          zip -r ../AbtinMaps-language-packs.zip .
 
-      - name: Upload artifact
+      - name: Upload language packs
         uses: actions/upload-artifact@v4
         with:
-          name: AbtinMaps-translation-packs
-          path: AbtinMaps-translation-packs.zip
-
-      - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: translations-${{ github.run_number }}
-          name: AbtinMaps Translation Packs ${{ github.run_number }}
-          generate_release_notes: true
-          files: AbtinMaps-translation-packs.zip
+          name: AbtinMaps-language-packs
+          path: |
+            AbtinMaps-language-packs.zip
+            dist/
+          if-no-files-found: error
