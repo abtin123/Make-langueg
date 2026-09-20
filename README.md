@@ -63,3 +63,12 @@ The previous generated script failed immediately with:
 The current `generate_languages.py` is self-contained and restores all required
 helpers (`load_json`, cache I/O, ABL writer, token protection/validation, hash
 generation, and response parsing). No API keys are required.
+
+## CI fix in v3
+
+Root cause of the failing run: `NameError: name 're' is not defined` (missing
+`import re` in `protect()`). Also hardened: tolerant placeholder restore,
+MyMemory quota/status rejection, local Argos only enabled when `fa->*` models
+exist, per-language retry passes with resumable cache, source `fa.json`
+auto-discovery, and the workflow moved to `.github/workflows/`
+(cache is saved and packs uploaded even when a run fails).

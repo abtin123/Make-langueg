@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import random
+import re
 import threading
 import time
 from pathlib import Path
@@ -28,6 +29,10 @@ REQUEST_TIMEOUT = float(os.getenv("TRANSLATION_TIMEOUT", "25"))
 PROVIDER_MAX_ATTEMPTS = max(1, int(os.getenv("PROVIDER_MAX_ATTEMPTS", "3")))
 PROVIDER_COOLDOWN = float(os.getenv("PROVIDER_COOLDOWN", "20"))
 PROVIDER_INTERVAL = float(os.getenv("PROVIDER_INTERVAL", "0.20"))
+LANGUAGE_PASSES = max(1, int(os.getenv("LANGUAGE_PASSES", "3")))
+PASS_MAX_FAILURES = max(1, int(os.getenv("PASS_MAX_FAILURES", "30")))
+MIN_SOURCE_KEYS = max(1, int(os.getenv("MIN_SOURCE_KEYS", "1")))
+CACHE_FLUSH_EVERY = 25
 
 FREE_PROVIDERS = [
     x.strip().lower()
@@ -153,10 +158,34 @@ def protect(text: str) -> tuple[str, dict[str, str]]:
     return protected, tokens
 
 
+# Engines sometimes add spaces, drop underscores or localise digits inside the
+# placeholders, so restoration is deliberately tolerant.
+_TOKEN_RE = re.compile(r"(?:_+\s*)?ABTIN[\s_]*TOKEN[\s_]*(\d+)(?:\s*_+)?", re.IGNORECASE)
+_LEFTOVER_RE = re.compile(r"abtin[\s_]*token", re.IGNORECASE)
+_BAD_MARKERS = (
+    "mymemory warning",
+    "invalid target language",
+    "please select two distinct languages",
+    "query length limit exceeded",
+)
+
+
 def restore(text: str, tokens: dict[str, str]) -> str:
-    for token, original in tokens.items():
-        text = text.replace(token, original)
-    return text
+    def sub(m: re.Match) -> str:
+        return tokens.get(f"__ABTIN_TOKEN_{int(m.group(1))}__", m.group(0))
+
+    return _TOKEN_RE.sub(sub, text)
+
+
+def is_bad_translation(source: str, translated: str) -> bool:
+    if not translated or not translated.strip():
+        return True
+    if _LEFTOVER_RE.search(translated):
+        return True
+    low = translated.lower()
+    if any(m in low for m in _BAD_MARKERS):
+        return True
+    return not validate_restored(source, translated)
 
 
 def validate_restored(source: str, translated: str) -> bool:
@@ -180,11 +209,37 @@ def parse_gtx_response(payload: Any) -> str:
     )
 
 
+_ARGOS_RUN_LOCK = threading.Lock()
+
+
+def load_local_argos() -> dict[str, Any]:
+    """Return {target_code: installed fa->target translation}; {} if unavailable."""
+    try:
+        import argostranslate.translate as at
+
+        langs = at.get_installed_languages()
+        src = next((l for l in langs if l.code == "fa"), None)
+        if src is None:
+            return {}
+        found: dict[str, Any] = {}
+        for lang in langs:
+            if lang.code == "fa":
+                continue
+            translation = src.get_translation(lang)
+            if translation is not None:
+                found[lang.code] = translation
+        return found
+    except Exception as exc:  # missing package, broken install, etc.
+        print(f"Local Argos disabled: {exc}", flush=True)
+        return {}
+
+
 class Provider:
-    def __init__(self, name: str, kind: str, endpoint: str = ""):
+    def __init__(self, name: str, kind: str, endpoint: str = "", translations: dict[str, Any] | None = None):
         self.name = name
         self.kind = kind
         self.endpoint = endpoint.rstrip("/")
+        self.translations = translations
         self.rate_limiter = RateLimiter(PROVIDER_INTERVAL)
         self._cooldown_until = 0.0
         self._cooldown_lock = threading.Lock()
@@ -198,6 +253,9 @@ class Provider:
     def available(self) -> bool:
         with self._cooldown_lock:
             return time.monotonic() >= self._cooldown_until
+
+    def supports(self, target: str) -> bool:
+        return self.translations is None or target in self.translations
 
     def translate(self, text: str, target: str) -> str:
         if self.kind == "google":
@@ -216,8 +274,8 @@ class Provider:
         if not translated or not translated.strip():
             raise TranslationError(f"{self.name}: empty translation")
         translated = restore(translated.strip(), tokens)
-        if not validate_restored(source, translated):
-            raise TranslationError(f"{self.name}: protected-token validation failed")
+        if is_bad_translation(source, translated):
+            raise TranslationError(f"{self.name}: rejected translation (tokens/quota marker)")
         return translated
 
     def translate_google(self, text: str, target: str) -> str:
@@ -251,7 +309,13 @@ class Provider:
         })
         with urlopen(req, timeout=REQUEST_TIMEOUT) as response:
             payload = json.loads(response.read())
-        translated = payload.get("responseData", {}).get("translatedText", "")
+        try:
+            status = int(payload.get("responseStatus", 200))
+        except (TypeError, ValueError):
+            status = 0
+        if status != 200:
+            raise TranslationError(f"{self.name}: status {status}")
+        translated = (payload.get("responseData") or {}).get("translatedText") or ""
         return self._validate(text, translated, tokens)
 
     def translate_lingva(self, text: str, target: str) -> str:
@@ -289,14 +353,12 @@ class Provider:
         return self._validate(text, translated, tokens)
 
     def translate_local_argos(self, text: str, target: str) -> str:
-        try:
-            import argostranslate.translate as at
-        except ImportError as exc:
-            raise TranslationError(
-                "local Argos is unavailable; install argostranslate"
-            ) from exc
+        translation = (self.translations or {}).get(target)
+        if translation is None:
+            raise TranslationError(f"{self.name}: no fa->{target} model installed")
         protected, tokens = protect(text)
-        translated = at.translate(protected, "fa", target)
+        with _ARGOS_RUN_LOCK:
+            translated = translation.translate(protected)
         return self._validate(text, translated, tokens)
 
 
@@ -319,7 +381,11 @@ class ProviderPool:
                 self.providers.append(Provider(f"argos-public-{i+1}", "argos", endpoint))
 
         if USE_LOCAL_ARGOS:
-            self.providers.append(Provider("argos-local", "local_argos"))
+            local = load_local_argos()
+            if local:
+                self.providers.append(Provider("argos-local", "local_argos", translations=local))
+            else:
+                print("Local Argos: no fa->* models installed; skipping.", flush=True)
 
         if not self.providers:
             raise RuntimeError("No free translation providers configured")
@@ -327,16 +393,16 @@ class ProviderPool:
         self._lock = threading.Lock()
         self._cursor = 0
 
-    def next_provider(self, attempted: set[str]) -> Provider | None:
+    def next_provider(self, attempted: set[str], target: str) -> Provider | None:
         with self._lock:
             n = len(self.providers)
             for _ in range(n):
                 p = self.providers[self._cursor % n]
                 self._cursor += 1
-                if p.name not in attempted and p.available():
+                if p.name not in attempted and p.supports(target) and p.available():
                     return p
             for p in self.providers:
-                if p.name not in attempted:
+                if p.name not in attempted and p.supports(target):
                     return p
         return None
 
@@ -357,14 +423,10 @@ class Translator:
         last_error: Exception | None = None
         attempted: set[str] = set()
 
-        for _ in range(PROVIDER_MAX_ATTEMPTS):
-            provider = self.pool.next_provider(attempted)
+        for _ in range(max(PROVIDER_MAX_ATTEMPTS, 6)):
+            provider = self.pool.next_provider(attempted, target)
             if provider is None:
-                attempted.clear()
-                time.sleep(0.5)
-                provider = self.pool.next_provider(attempted)
-                if provider is None:
-                    break
+                break
 
             attempted.add(provider.name)
 
@@ -390,7 +452,7 @@ class Translator:
                 )
                 time.sleep(delay)
 
-            except (URLError, TimeoutError, OSError, json.JSONDecodeError, TranslationError) as exc:
+            except Exception as exc:  # network, JSON, provider-specific errors: fail over
                 last_error = exc
                 provider.cooldown()
                 delay = random.uniform(0.15, 0.8)
@@ -401,7 +463,7 @@ class Translator:
                 time.sleep(delay)
 
         raise TranslationError(
-            f"{target}: free provider pool failed after {PROVIDER_MAX_ATTEMPTS} attempts: "
+            f"{target}: free provider pool failed after {len(attempted)} attempts: "
             f"{last_error}"
         )
 
@@ -415,40 +477,76 @@ def build_language(
     translator: Translator,
 ):
     cache_file = cache_dir / f"{code}.json"
-    cache = load_json(cache_file) if cache_file.exists() else {}
-    if set(cache) - set(source):
-        cache = {k: v for k, v in cache.items() if k in source}
+    try:
+        cache = load_json(cache_file) if cache_file.exists() else {}
+    except (OSError, ValueError) as exc:
+        print(f"[{code}] ignoring unreadable cache: {exc}", flush=True)
+        cache = {}
+    # Drop stale keys and any previously cached bad translations.
+    cache = {
+        k: v for k, v in cache.items()
+        if k in source and not is_bad_translation(source[k], v)
+    }
 
-    result = dict(cache)
     keys = list(source)
-    missing = [(k, source[k]) for k in keys if not cache.get(k, "").strip()]
 
-    print(f"\n=== [{code}] {len(keys)} strings | {workers} workers | missing {len(missing)} ===", flush=True)
+    def pending() -> list[tuple[str, str]]:
+        return [
+            (k, source[k]) for k in keys
+            if source[k].strip() and not cache.get(k, "").strip()
+        ]
 
-    def one(item):
-        key, value = item
-        return key, translator.translate(value, code)
+    def one(item: tuple[str, str]) -> str:
+        return translator.translate(item[1], code)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = {pool.submit(one, item): item[0] for item in missing}
-        for future in concurrent.futures.as_completed(futures):
-            key = futures[future]
-            translated = future.result()
-            result[key] = translated
-            cache[key] = translated
+    last_error: Exception | None = None
+    for attempt in range(1, LANGUAGE_PASSES + 1):
+        missing = pending()
+        if not missing:
+            break
+        if attempt > 1:
+            time.sleep(min(30, 5 * attempt))
+        print(
+            f"\n=== [{code}] pass {attempt}/{LANGUAGE_PASSES} | {len(keys)} strings | "
+            f"{workers} workers | missing {len(missing)} ===",
+            flush=True,
+        )
+
+        failures = 0
+        done = 0
+        pool = concurrent.futures.ThreadPoolExecutor(max_workers=workers)
+        try:
+            futures = {pool.submit(one, item): item[0] for item in missing}
+            for future in concurrent.futures.as_completed(futures):
+                key = futures[future]
+                try:
+                    cache[key] = future.result()
+                except concurrent.futures.CancelledError:
+                    continue
+                except Exception as exc:
+                    last_error = exc
+                    failures += 1
+                    if failures >= PASS_MAX_FAILURES:
+                        print(f"[{code}] too many failures in this pass; pausing", flush=True)
+                        break
+                    continue
+                done += 1
+                if done % CACHE_FLUSH_EVERY == 0:
+                    atomic_write_json(cache_file, cache)
+                    print(f"[{code}] {len(keys) - len(pending())}/{len(keys)}", flush=True)
+        finally:
+            pool.shutdown(wait=True, cancel_futures=True)
             atomic_write_json(cache_file, cache)
 
-            done = len(keys) - len(missing) + sum(
-                1 for k in result if cache.get(k, "").strip()
-            )
-            # Avoid noisy logs while still showing progress.
-            if len(result) % 25 == 0 or len(result) == len(keys):
-                print(f"[{code}] {len(result)}/{len(keys)}", flush=True)
-
-    missing_keys = [k for k in keys if not result.get(k, "").strip()]
+    result = {
+        k: (cache[k] if cache.get(k, "").strip() else (source[k] if not source[k].strip() else ""))
+        for k in keys
+    }
+    missing_keys = [k for k in keys if source[k].strip() and not result[k].strip()]
     if missing_keys:
         raise TranslationError(
             f"{code}: refusing to publish incomplete pack; {len(missing_keys)} missing"
+            + (f" (last error: {last_error})" if last_error else "")
         )
 
     if set(result) != set(source):
@@ -486,6 +584,23 @@ def build_manifest(source: dict[str, str], output_dir: Path, version: str):
     )
 
 
+def find_source(arg: str) -> Path:
+    path = Path(arg)
+    if path.is_file():
+        return path
+    skip = {".git", "node_modules", "output", ".translation_cache", ".dart_tool", "build"}
+    found: list[Path] = []
+    for root, dirs, files in os.walk("."):
+        dirs[:] = [d for d in dirs if d not in skip]
+        if path.name in files:
+            found.append(Path(root) / path.name)
+    if not found:
+        raise SystemExit(f"Source file not found: {arg}")
+    found.sort(key=lambda c: (len(c.parts), str(c)))
+    print(f"{arg} not found; using {found[0]}", flush=True)
+    return found[0]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", default="fa.json")
@@ -501,8 +616,9 @@ def main() -> int:
     if args.min_interval < 0:
         parser.error("--min-interval must be >= 0")
 
-    source = load_json(Path(args.input))
-    if len(source) < 100:
+    source_path = find_source(args.input)
+    source = load_json(source_path)
+    if len(source) < MIN_SOURCE_KEYS:
         raise SystemExit(f"Source looks invalid: only {len(source)} keys")
 
     output_dir = Path(args.output)
@@ -510,7 +626,7 @@ def main() -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
     cache_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"Source: {args.input} | keys: {len(source)}", flush=True)
+    print(f"Source: {source_path} | keys: {len(source)}", flush=True)
     print(
         f"Targets: {len(LANGUAGES)} | workers: {args.workers} | "
         f"min interval: {args.min_interval:.2f}s",
@@ -520,8 +636,21 @@ def main() -> int:
     translator = Translator(args.min_interval)
     print(f"Provider pool: {translator.pool.summary()}", flush=True)
 
+    failed: list[str] = []
     for code in LANGUAGES:
-        build_language(code, source, cache_dir, output_dir, args.workers, translator)
+        try:
+            build_language(code, source, cache_dir, output_dir, args.workers, translator)
+        except Exception as exc:
+            failed.append(code)
+            print(f"[{code}] FAILED: {exc}", flush=True)
+
+    if failed:
+        print(
+            f"Incomplete languages: {', '.join(failed)}. "
+            "Progress is cached; re-run to resume.",
+            flush=True,
+        )
+        return 1
 
     build_manifest(source, output_dir, args.version)
     print(f"All {len(LANGUAGES)} language packs completed.", flush=True)
