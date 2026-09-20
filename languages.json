@@ -1,0 +1,36 @@
+{
+  "local": [
+    "fa",
+    "en"
+  ],
+  "targets": [
+    "ar",
+    "cs",
+    "da",
+    "de",
+    "el",
+    "es",
+    "fi",
+    "fr",
+    "he",
+    "hi",
+    "hu",
+    "id",
+    "it",
+    "ja",
+    "ko",
+    "nl",
+    "no",
+    "pl",
+    "pt",
+    "ro",
+    "ru",
+    "sv",
+    "th",
+    "tr",
+    "uk",
+    "ur",
+    "vi",
+    "zh"
+  ]
+}
