@@ -2,13 +2,6 @@ name: Build Translation Packs
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - "fa.json"
-      - "generate_languages.py"
-      - "requirements.txt"
-      - ".github/workflows/translations.yml"
-
 permissions:
   contents: read
 
