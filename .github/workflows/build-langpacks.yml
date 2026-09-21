@@ -1,0 +1,82 @@
+name: Build all Abtin Maps language packs
+
+on:
+  push:
+    paths:
+      - "fa.json"
+      - "build_langpacks_argos.py"
+      - ".github/workflows/build-langpacks.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Free runner disk
+        shell: bash
+        run: |
+          set -eux
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo docker system prune -af || true
+          df -h
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Build all language packs
+        env:
+          PIP_DISABLE_PIP_VERSION_CHECK: "1"
+        run: |
+          python build_langpacks_argos.py
+
+      - name: Validate output
+        shell: bash
+        run: |
+          set -eux
+          test -f output/manifest.json
+          test "$(find output -maxdepth 1 -name 'lang_*.abl' | wc -l)" = "29"
+          python - <<'PY'
+          import gzip, json, pathlib
+          source=json.load(open("fa.json",encoding="utf-8"))
+          for p in sorted(pathlib.Path("output").glob("lang_*.abl")):
+              with gzip.open(p,"rt",encoding="utf-8") as f:
+                  data=json.load(f)
+              assert set(data)==set(source), p
+              assert all((not source[k].strip()) or data[k].strip() for k in source), p
+              print(p.name, len(data))
+          m=json.load(open("output/manifest.json",encoding="utf-8"))
+          assert m["key_count"]==len(source)
+          assert len(m["languages"])==29
+          print("manifest OK")
+          PY
+
+      - name: Package for manual upload
+        run: |
+          cp output/manifest.json ./manifest.json
+          cd output
+          zip -9 -r ../AbtinMaps_language_packs_complete.zip lang_*.abl manifest.json
+          cd ..
+          sha256sum AbtinMaps_language_packs_complete.zip manifest.json > SHA256SUMS.txt
+
+      - name: Upload language packs
+        uses: actions/upload-artifact@v4
+        with:
+          name: AbtinMaps-language-packs-complete
+          path: |
+            AbtinMaps_language_packs_complete.zip
+            manifest.json
+            SHA256SUMS.txt
+            output/*.abl
+          retention-days: 14
