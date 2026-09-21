@@ -1,11 +1,7 @@
 name: Build all Abtin Maps language packs
 
 on:
-  push:
-    paths:
-      - "fa.json"
-      - "build_langpacks_argos.py"
-      - ".github/workflows/build-langpacks.yml"
+  
   workflow_dispatch:
 
 permissions:
