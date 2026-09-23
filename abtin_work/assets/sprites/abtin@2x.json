@@ -1,0 +1,165 @@
+{
+  "abm-fuel": {
+    "width": 64,
+    "height": 64,
+    "x": 0,
+    "y": 0,
+    "pixelRatio": 2
+  },
+  "abm-parking": {
+    "width": 64,
+    "height": 64,
+    "x": 72,
+    "y": 0,
+    "pixelRatio": 2
+  },
+  "abm-hospital": {
+    "width": 64,
+    "height": 64,
+    "x": 144,
+    "y": 0,
+    "pixelRatio": 2
+  },
+  "abm-pharmacy": {
+    "width": 64,
+    "height": 64,
+    "x": 216,
+    "y": 0,
+    "pixelRatio": 2
+  },
+  "abm-police": {
+    "width": 64,
+    "height": 64,
+    "x": 288,
+    "y": 0,
+    "pixelRatio": 2
+  },
+  "abm-school": {
+    "width": 64,
+    "height": 64,
+    "x": 0,
+    "y": 72,
+    "pixelRatio": 2
+  },
+  "abm-restaurant": {
+    "width": 64,
+    "height": 64,
+    "x": 72,
+    "y": 72,
+    "pixelRatio": 2
+  },
+  "abm-cafe": {
+    "width": 64,
+    "height": 64,
+    "x": 144,
+    "y": 72,
+    "pixelRatio": 2
+  },
+  "abm-bank": {
+    "width": 64,
+    "height": 64,
+    "x": 216,
+    "y": 72,
+    "pixelRatio": 2
+  },
+  "abm-hotel": {
+    "width": 64,
+    "height": 64,
+    "x": 288,
+    "y": 72,
+    "pixelRatio": 2
+  },
+  "abm-supermarket": {
+    "width": 64,
+    "height": 64,
+    "x": 0,
+    "y": 144,
+    "pixelRatio": 2
+  },
+  "abm-mosque": {
+    "width": 64,
+    "height": 64,
+    "x": 72,
+    "y": 144,
+    "pixelRatio": 2
+  },
+  "abm-toilets": {
+    "width": 64,
+    "height": 64,
+    "x": 144,
+    "y": 144,
+    "pixelRatio": 2
+  },
+  "abm-bus": {
+    "width": 64,
+    "height": 64,
+    "x": 216,
+    "y": 144,
+    "pixelRatio": 2
+  },
+  "abm-airport": {
+    "width": 64,
+    "height": 64,
+    "x": 288,
+    "y": 144,
+    "pixelRatio": 2
+  },
+  "abm-attraction": {
+    "width": 64,
+    "height": 64,
+    "x": 0,
+    "y": 216,
+    "pixelRatio": 2
+  },
+  "abm-park": {
+    "width": 64,
+    "height": 64,
+    "x": 72,
+    "y": 216,
+    "pixelRatio": 2
+  },
+  "abm-pitch": {
+    "width": 64,
+    "height": 64,
+    "x": 144,
+    "y": 216,
+    "pixelRatio": 2
+  },
+  "abm-speed-camera": {
+    "width": 64,
+    "height": 64,
+    "x": 216,
+    "y": 216,
+    "pixelRatio": 2
+  },
+  "abm-poi": {
+    "width": 64,
+    "height": 64,
+    "x": 288,
+    "y": 216,
+    "pixelRatio": 2
+  },
+  "abm-arrow": {
+    "width": 64,
+    "height": 64,
+    "x": 0,
+    "y": 288,
+    "pixelRatio": 2,
+    "sdf": true
+  },
+  "abm-road-shield": {
+    "width": 64,
+    "height": 64,
+    "x": 72,
+    "y": 288,
+    "pixelRatio": 2,
+    "sdf": false
+  },
+  "abm-city-dot": {
+    "width": 64,
+    "height": 64,
+    "x": 144,
+    "y": 288,
+    "pixelRatio": 2
+  }
+}

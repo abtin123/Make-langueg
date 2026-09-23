@@ -1,0 +1,87 @@
+name: Build & Release Language Packs
+
+on:
+  workflow_dispatch:
+    inputs:
+      langpack_version:
+        description: 'Language pack version tag written into manifest.json'
+        required: false
+        default: '1'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Restore translation cache
+        uses: actions/cache@v4
+        with:
+          path: tool/l10n/.translation_cache
+          key: translations-${{ runner.os }}-${{ hashFiles('lib/core/localization/app_localizations.dart') }}
+          restore-keys: |
+            translations-${{ runner.os }}-
+
+      - name: Build all language packs (retries automatically, cache-resumed)
+        env:
+          TRANSLATION_WORKERS: '12'
+          PROVIDER_MAX_ATTEMPTS: '3'
+          PROVIDER_INTERVAL: '0.20'
+          FREE_TRANSLATION_PROVIDERS: 'google,mymemory,lingva'
+          LANGPACK_VERSION: ${{ github.event.inputs.langpack_version }}
+        run: |
+          set -e
+          for attempt in 1 2 3 4 5; do
+            echo "=== attempt $attempt/5 ==="
+            if python tool/l10n/build_release.py; then
+              echo "All language packs completed."
+              break
+            fi
+            if [ "$attempt" = "5" ]; then
+              echo "Some languages are still incomplete after 5 attempts."
+              echo "Re-run this workflow again later; progress is cached."
+              exit 1
+            fi
+            echo "Retrying missing languages in 30s..."
+            sleep 30
+          done
+
+      - name: Upload build artifact (backup / inspection)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: language-packs
+          path: tool/l10n/out/**
+          if-no-files-found: warn
+
+      - name: Commit refreshed assets/local/fa.json and en.json
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/local/fa.json assets/local/en.json
+          git commit -m "chore: refresh bundled fa/en locale json" || echo "Nothing to commit"
+          git push || echo "Nothing to push"
+
+      - name: Publish GitHub Release (langpacks-latest)
+        if: success()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: langpacks-latest
+          name: "Language packs (latest)"
+          body: |
+            Auto-built downloadable language packs for AbtinMaps.
+            28 languages, translated from the Persian ("fa") source strings
+            in `lib/core/localization/app_localizations.dart`.
+            Regenerate with the "Build & Release Language Packs" workflow.
+          make_latest: false
+          files: |
+            tool/l10n/out/*.abl
+            tool/l10n/out/manifest.json

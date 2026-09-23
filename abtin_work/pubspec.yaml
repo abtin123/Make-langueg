@@ -1,0 +1,135 @@
+name: abtin_maps
+description: "آبتین مپس — مسیریاب هوشمند آفلاین سه‌بعدی"
+publish_to: 'none'
+version: 0.0.10+10
+
+environment:
+  sdk: '>=3.6.0 <4.0.0'
+  flutter: '>=3.24.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # --- Map engine (Native, GPU-accelerated, vector tiles, 3D) ---
+  # آپدیت شده به نسخه‌ی جدیدتر برای سازگاری با Flutter 3.x
+
+  # --- State management / DI ---
+  flutter_riverpod: ^2.5.1
+
+  # --- Navigation/Routing (app-internal screen routing, not GPS routing) ---
+  go_router: ^17.2.3
+
+  # --- Local database (Saved Places, POI index, route cache) ---
+  drift: ^2.18.0
+  sqlite3_flutter_libs: ^0.5.24
+  sqlite3: ^2.4.6
+  path_provider: ^2.1.3
+  path: ^1.9.0
+  # --- GPS / Location (used from Phase 5 onward, wired now for permission flow) ---
+  geolocator: ^12.0.0
+  permission_handler: ^11.3.1
+
+  # --- انتخاب عکس پروفایل از گالری یا دوربین (آواتار حساب کاربری) ---
+  image_picker: ^1.1.2
+
+  # --- شتاب‌سنج گوشی (برای اتصال واقعی سرعت‌سنج به سنسور فیزیکی و فیوژن با GPS) ---
+  sensors_plus: ^6.1.1
+
+  # --- رندر واقعیِ سه‌بعدیِ GLB خودرو با موتور Filament گوگل (بدون WebView) ---
+  # نسخه باید با «flutter pub get» روی محیطی با Flutter/Android SDK تأیید شود؛
+  # این sandbox شبکه و Flutter SDK ندارد، پس نصب پکیج اینجا قابل اجرا نیست.
+  model_viewer_plus: ^1.9.3
+  # --- AI Camera: پیش‌نمایش/ضبط محلی + اجرای مدل TFLite کاملاً آفلاین ---
+  tflite_flutter: ^0.11.0
+
+
+
+  # --- HTTP Client (برای درخواست‌های API مسیریابی) ---
+  http: ^1.2.0
+
+  # --- رندر پرچم‌های واقعیِ SVG با کیفیت مستقل از اندازه ---
+  flutter_svg: ^2.2.1
+
+  # --- نقشهٔ برخطِ pure-Flutter: کاشی، مسیر و لایهٔ خودرو ---
+
+  # موتور واحدِ برداری GPUمحور برای نقشهٔ آفلاین/آنلاین. ABM توسط
+  # AbmRenderer به GeoJSON تبدیل و روی Style Layerهای native نمایش داده می‌شود.
+  maplibre_gl: ^0.27.1
+
+
+  # --- لینک عمیق (Deep Link) برای باز شدن اپ با آدرس abtin://navigate ---
+  app_links: ^6.4.1
+
+  crypto: ^3.0.3
+  # --- پخش صوت‌های ضبط‌شده (MP3) ---
+  just_audio: ^0.9.40
+  audioplayers: ^6.1.0
+
+  cupertino_icons: ^1.0.6
+
+  # --- اشتراک‌گذاریِ مکان‌های ذخیره‌شده (دکمه‌ی «اشتراک‌گذاری» در علاقه‌مندی‌ها) ---
+  # نکته‌ی مهم (رفع خطای بیلد CI): نسخه‌ی ۱۳ به بعدِ share_plus به Dart SDK
+  # ≥3.10 نیاز دارد، در حالی که این پروژه (و Flutter 3.35.1 که در CI نصب
+  # می‌شود) روی Dart 3.9.0 است، پس `flutter pub get` با خطای version solving
+  # شکست می‌خورد. نسخه‌ی ۱۲ همان API جدید (`SharePlus.instance.share` +
+  # `ShareParams`) را دارد، پس بدون نیاز به تغییر کد فقط ورژن پایین آمد.
+  share_plus: ^12.0.2
+  url_launcher: ^6.3.1
+  resumable_downloader: ^0.0.38
+  # maplibre_gl به image/archive نسل ۴ نیاز دارد؛ API مصرف‌شدهٔ پروژه
+  # (ZipDecoder/ArchiveFile) در این نسخه حفظ شده است.
+  archive: ^4.2.0
+
+  intl: ^0.20.2
+  flutter_localizations:
+    sdk: flutter
+
+  # --- انتخاب تاریخ تولد از تقویم شمسی (برای کاربران فارسی‌زبان) ---
+  persian_datetime_picker: ^3.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # --- تست‌های واحدِ LocationService بدون دستگاه/GPS واقعی ---
+  # mocktail: موکِ GeolocatorPlatform.instance (بدون نیاز به codegen).
+  # plugin_platform_interface: برای MockPlatformInterfaceMixin — دور زدنِ
+  # چکِ توکنِ PlatformInterface روی GeolocatorPlatform در تست.
+  # fake_async: کنترلِ دستیِ زمان برای تستِ backoff نمایی/واچ‌داگِ ۱۲ثانیه‌ای
+  # بدون این‌که تست واقعاً چند ثانیه صبر کند.
+  mocktail: ^1.0.4
+  plugin_platform_interface: ^2.1.8
+  fake_async: ^1.3.1
+  drift_dev: ^2.18.0
+  build_runner: ^2.4.9
+  flutter_lints: ^4.0.0
+  ffi: ^2.1.3
+
+flutter:
+  uses-material-design: true
+
+  fonts:
+    - family: Vazirmatn
+      fonts:
+        - asset: assets/fonts/Vazirmatn-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Vazirmatn-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Vazirmatn-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Vazirmatn-ExtraBold.ttf
+          weight: 800
+
+  assets:
+    - assets/local/fa.json
+    - assets/local/en.json
+    - assets/images/
+    - assets/images/flags/
+    - assets/models/
+    - assets/styles/
+    - assets/styles/abtin_unified_style.json
+    - assets/world/
+    - assets/glyphs/Vazirmatn/
+    - assets/glyphs/VazirmatnBold/
+    - assets/sprites/

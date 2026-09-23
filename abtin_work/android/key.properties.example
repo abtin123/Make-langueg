@@ -1,0 +1,12 @@
+# این فایل فقط نمونه است. برای build محلی آن را کپی کن به:
+#   android/key.properties
+# سپس مقدارهای واقعی را جایگزین کن.
+#
+# android/key.properties و فایل keystore هرگز نباید وارد Git یا ZIP شوند.
+# workflow android-release.yml برای CI از GitHub Secrets استفاده می‌کند.
+
+storeFile=app/Key-abtin.p12
+storeType=PKCS12
+storePassword=CHANGE_ME
+keyAlias=key-abtin
+keyPassword=CHANGE_ME
