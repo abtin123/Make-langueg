@@ -498,7 +498,16 @@ def build_language(code: str, source: dict[str, str], cache_dir: Path, output_di
         cache = json.loads(cache_file.read_text(encoding="utf-8")) if cache_file.exists() else {}
     except (OSError, ValueError):
         cache = {}
-    cache = {k: v for k, v in cache.items() if k in source and not is_bad_translation(source[k], v)}
+    # Reject stale fallback/Persian cache entries. Older builds could cache the
+    # source text after a provider failure, making every language identical.
+    cache = {
+        k: v for k, v in cache.items()
+        if k in source
+        and source[k].strip()
+        and v.strip()
+        and v.strip() != source[k].strip()
+        and not is_bad_translation(source[k], v)
+    }
 
     keys = list(source)
 
@@ -542,11 +551,21 @@ def build_language(code: str, source: dict[str, str], cache_dir: Path, output_di
             pool.shutdown(wait=True, cancel_futures=True)
             atomic_write_json(cache_file, cache)
 
+    # Never fall back to Persian for a non-empty source string. A failed
+    # translation must make the language incomplete so the workflow retries it.
     result = {
-        k: (cache[k] if cache.get(k, "").strip() else (source[k] if not source[k].strip() else ""))
+        k: (cache[k] if cache.get(k, "").strip() else "")
         for k in keys
     }
-    missing_keys = [k for k in keys if source[k].strip() and not result[k].strip()]
+    missing_keys = [
+        k for k in keys
+        if source[k].strip()
+        and (
+            not result[k].strip()
+            or result[k].strip() == source[k].strip()
+            or is_bad_translation(source[k], result[k])
+        )
+    ]
     if missing_keys:
         print(f"[{code}] INCOMPLETE: {len(missing_keys)} keys still missing (last error: {last_error})", flush=True)
         return False
@@ -557,19 +576,49 @@ def build_language(code: str, source: dict[str, str], cache_dir: Path, output_di
 
 
 def build_manifest(source: dict[str, str], output_dir: Path, completed: list[str], version: str) -> None:
+    expected = set(LANGUAGES)
+    actual = set(completed)
+    if actual != expected:
+        raise RuntimeError(
+            f"Manifest language set mismatch: missing={sorted(expected - actual)}, "
+            f"extra={sorted(actual - expected)}"
+        )
+
     packs = []
-    for code in completed:
+    hashes: dict[str, str] = {}
+    for code in LANGUAGES:
         path = output_dir / f"lang_{code}.abl"
+        if not path.is_file() or path.stat().st_size == 0:
+            raise RuntimeError(f"Missing/empty language pack: {path.name}")
+
+        digest = sha256(path)
+        if digest in hashes:
+            raise RuntimeError(
+                f"Duplicate language-pack content: {code} and {hashes[digest]} "
+                f"have the same SHA-256 ({digest}). Refusing to publish."
+            )
+        hashes[digest] = code
+
         packs.append({
             "language_code": code,
             "direction": "rtl" if code in RTL_LANGUAGES else "ltr",
             "string_count": len(source),
             "size": path.stat().st_size,
-            "sha256": sha256(path),
+            "sha256": digest,
             "download_url": f"lang_{code}.abl",
         })
-    manifest = {"version": version, "source_language": "fa", "key_count": len(source), "languages": packs}
-    (output_dir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    manifest = {
+        "version": version,
+        "source_language": "fa",
+        "key_count": len(source),
+        "language_count": len(packs),
+        "languages": packs,
+    }
+    (output_dir / "manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
 
 
 def main() -> int:
