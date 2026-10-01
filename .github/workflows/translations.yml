@@ -10,88 +10,127 @@ on:
   workflow_dispatch:
     inputs:
       langpack_version:
-        description: 'Language pack version tag written into manifest.json'
+        description: "Language pack version"
         required: false
-        default: '1'
+        default: "1"
 
 permissions:
   contents: write
 
+concurrency:
+  group: abtinmaps-language-release
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     steps:
+      - name: Free disk
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL || true
+          sudo docker system prune -af || true
+          df -h
+
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
 
-      - name: Restore translation cache
+      - name: Restore fast translation cache
         uses: actions/cache@v4
         with:
-          path: tool/l10n/.translation_cache
-          key: translations-${{ runner.os }}-${{ hashFiles('lib/core/localization/app_localizations.dart') }}
+          path: tool/l10n/.fast_cache
+          key: abtinmaps-fast-l10n-${{ runner.os }}-${{ hashFiles('lib/core/localization/app_localizations.dart') }}
           restore-keys: |
-            translations-${{ runner.os }}-
+            abtinmaps-fast-l10n-${{ runner.os }}-
 
-      - name: Build all language packs (retries automatically, cache-resumed)
+      - name: Build exactly 28 downloadable language packs
         env:
-          TRANSLATION_WORKERS: '12'
-          PROVIDER_MAX_ATTEMPTS: '3'
-          PROVIDER_INTERVAL: '0.20'
-          FREE_TRANSLATION_PROVIDERS: 'google,mymemory,lingva'
-          LANGPACK_VERSION: ${{ github.event.inputs.langpack_version }}
+          TRANSLATION_BATCH_SIZE: "18"
+          LANGPACK_VERSION: ${{ github.event.inputs.langpack_version || '1' }}
         run: |
-          set -e
-          # Never let stale 29-pack output survive into a new release.
+          set -euo pipefail
           rm -rf tool/l10n/out
           mkdir -p tool/l10n/out
-          for attempt in 1 2 3 4 5; do
-            echo "=== attempt $attempt/5 ==="
-            if python tool/l10n/build_release.py; then
-              echo "All language packs completed."
+          for attempt in 1 2 3; do
+            echo "=== build attempt $attempt/3 ==="
+            if python tool/l10n/build_fast_release.py; then
               break
             fi
-            if [ "$attempt" = "5" ]; then
-              echo "Some languages are still incomplete after 5 attempts."
-              echo "Re-run this workflow again later; progress is cached."
+            if [ "$attempt" = "3" ]; then
               exit 1
             fi
-            echo "Retrying missing languages in 30s..."
-            sleep 30
+            sleep 10
           done
 
-      - name: Upload build artifact (backup / inspection)
-        if: always()
+      - name: Validate every pack
+        run: |
+          python - <<'PY'
+          import gzip, json, pathlib, hashlib
+          out=pathlib.Path("tool/l10n/out")
+          expected={"ar","cs","da","de","el","es","fi","fr","he","hi","hu","id","it","ja","ko","nl","no","pl","pt","ro","ru","sv","th","tr","uk","ur","vi","zh"}
+          packs=sorted(out.glob("lang_*.abl"))
+          assert len(packs)==28, f"expected 28 packs, got {len(packs)}"
+          assert {p.stem[5:] for p in packs}==expected
+          m=json.loads((out/"manifest.json").read_text(encoding="utf-8"))
+          assert m["language_count"]==28
+          assert m["key_count"]>100
+          seen=set()
+          for p in packs:
+              with gzip.open(p,"rt",encoding="utf-8") as f: d=json.load(f)
+              assert len(d)==m["key_count"], p
+              assert all(str(v).strip() for v in d.values()), p
+              h=hashlib.sha256(p.read_bytes()).hexdigest()
+              assert h not in seen, f"duplicate pack: {p}"
+              seen.add(h)
+          print("VALID: 28 packs /",m["key_count"],"keys each")
+          PY
+
+      - name: Package all packs for manual upload
+        run: |
+          cp tool/l10n/out/manifest.json ./manifest.json
+          cd tool/l10n/out
+          zip -9 ../AbtinMaps_language_packs_complete.zip lang_*.abl manifest.json
+          cd -
+          sha256sum tool/l10n/AbtinMaps_language_packs_complete.zip manifest.json > SHA256SUMS.txt
+
+      - name: Upload backup artifact
         uses: actions/upload-artifact@v4
         with:
-          name: language-packs
-          path: tool/l10n/out/**
-          if-no-files-found: warn
+          name: AbtinMaps-language-packs-complete
+          path: |
+            tool/l10n/AbtinMaps_language_packs_complete.zip
+            tool/l10n/out/manifest.json
+            tool/l10n/out/lang_*.abl
+            SHA256SUMS.txt
+          retention-days: 30
 
-      - name: Commit refreshed assets/local/fa.json and en.json
-        if: success()
+      - name: Refresh bundled Persian/English JSON
         run: |
+          python assets/local/generate_locales.py || true
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add assets/local/fa.json assets/local/en.json
-          git commit -m "chore: refresh bundled fa/en locale json" || echo "Nothing to commit"
-          git push || echo "Nothing to push"
+          git commit -m "chore: refresh bundled fa/en locales" || true
+          git push || true
 
-      - name: Publish GitHub Release (langpacks-latest)
-        if: success()
+      - name: Publish langpacks-latest release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: langpacks-latest
-          name: "Language packs (latest)"
-          body: |
-            Auto-built downloadable language packs for AbtinMaps.
-            28 languages, translated from the Persian ("fa") source strings
-            in `lib/core/localization/app_localizations.dart`.
-            Regenerate with the "Build & Release Language Packs" workflow.
+          name: "AbtinMaps Language Packs"
           make_latest: false
           overwrite_files: true
+          body: |
+            Complete downloadable AbtinMaps language packs.
+            Exactly 28 languages; 100% of the source localization keys are present in every pack.
+            Source language: Persian (fa).
           files: |
-            tool/l10n/out/*.abl
+            tool/l10n/out/lang_*.abl
             tool/l10n/out/manifest.json
+            tool/l10n/AbtinMaps_language_packs_complete.zip
+            SHA256SUMS.txt
