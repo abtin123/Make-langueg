@@ -44,7 +44,7 @@ def extract(text, lang):
 def protect(s):
     tokens = {}
     i = 0
-    patterns = [r"\\{\\{[^{}]+\\}\\}", r"\\{[^{}]+\\}", r"%\\d+\\$?[sdif]", r"%[sdif]", r"\\$\\{[^}]+\\}", r"<[^>]+>"]
+    patterns = [r"\{\{[^{}]+\}\}", r"\{[^{}]+\}", r"%\d+\$?[sdif]", r"%[sdif]", r"\$\{[^}]+\}", r"<[^>]+>"]
     for pat in patterns:
         def repl(m):
             nonlocal i
