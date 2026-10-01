@@ -1,6 +1,12 @@
 name: Build & Release Language Packs
 
 on:
+  push:
+    paths:
+      - "tool/l10n/**"
+      - "assets/local/generate_locales.py"
+      - ".github/workflows/translations.yml"
+      - "lib/core/localization/app_localizations.dart"
   workflow_dispatch:
     inputs:
       langpack_version:
@@ -38,6 +44,9 @@ jobs:
           LANGPACK_VERSION: ${{ github.event.inputs.langpack_version }}
         run: |
           set -e
+          # Never let stale 29-pack output survive into a new release.
+          rm -rf tool/l10n/out
+          mkdir -p tool/l10n/out
           for attempt in 1 2 3 4 5; do
             echo "=== attempt $attempt/5 ==="
             if python tool/l10n/build_release.py; then
@@ -82,6 +91,7 @@ jobs:
             in `lib/core/localization/app_localizations.dart`.
             Regenerate with the "Build & Release Language Packs" workflow.
           make_latest: false
+          overwrite_files: true
           files: |
             tool/l10n/out/*.abl
             tool/l10n/out/manifest.json
